@@ -10,11 +10,28 @@ exports.create=(req, res, next)=>{
         publishedOn:req.body.publishedOn,
         AddedOn:req.body.addedOn
     };
-    Book.create(data).then((book)=>{
-        res.status(201).send(book);
+   
+    Book.findOne({where:{lsbn:req.body.lsbn}}).then((content) => {
+        
+        if(!content)
+        {
+            
+            Book.create(data).then((book)=>{
+                return res.status(200).send(book);
+            }).catch((err)=>{
+               return res.status(500).send({message:err.message});
+            })
+           
+        }
+        else{
+            return res.status(400).send("There is already a book with this lsbn so please enter valid ");
+        
+        }
     }).catch((err)=>{
-        res.status(500).send({message:err.message});
-    })
+        return res.status(500).send({message:err.message});
+    });
+     
+    
 
 }
 exports.getList=(req, res) => {
@@ -75,6 +92,11 @@ exports.mutate=(req, res) => {
        const data={
            isRented:"Yes",
            UserId:req.UserId
+       }
+       //user should not be able to rent more than 2 books at a time
+       if(req.body.ids.length > 2)
+       {
+        res.status(400).send("You cant rent more than 2 books at a time");
        }
        promise=Book.update(data,{where:{lsbn:{[Op.or]:req.body.ids}},returning:true}).then(()=>{
            Book.findAll({where:{lsbn:{[Op.or]:req.body.ids}}}).then((books)=>{
